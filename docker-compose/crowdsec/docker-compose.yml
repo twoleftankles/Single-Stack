@@ -1,0 +1,50 @@
+version: '3.8'
+services:
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    environment:
+      GID: "${GID-1000}"
+      COLLECTIONS: "crowdsecurity/linux crowdsecurity/traefik firix/authentik crowdsecurity/plex"
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./acquis.yaml:/etc/crowdsec/acquis.yaml
+      - ./db:/var/lib/crowdsec/data/
+      - ./config:/etc/crowdsec/
+      - /home/USERNAME/docker-compose/traefik/logs/traefik.log:/var/logs/traefik/traefik.log:ro
+      - /home/USERNAME/docker-compose/traefik/logs/access.log:/var/logs/traefik/access.log:ro
+      - ./mywhitelist.yaml:/etc/crowdsec/parsers/s02-enrich/mywhitelist.yaml:ro
+      - /var/log:/var/log:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: >
+      sh -c "
+      cscli console enroll -e context API KEY FROM CROWDSEC.NET --override &&
+      /usr/bin/crowdsec -c /etc/crowdsec/config.yaml
+      "
+    networks:
+      - proxy
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  bouncer-traefik:
+    image: docker.io/fbonalair/traefik-crowdsec-bouncer:latest
+    container_name: bouncer-traefik
+#    ports:
+#      - "127.0.0.1:8081:8080"
+    environment:
+      CROWDSEC_BOUNCER_API_KEY: BOUNCER API KEY GOES HERE, DUMMY
+      CROWDSEC_AGENT_HOST: crowdsec:8080
+    networks:
+      - proxy
+    depends_on:
+      - crowdsec
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+
+
+networks:
+  proxy:
+    external: true

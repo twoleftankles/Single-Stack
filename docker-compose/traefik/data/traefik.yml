@@ -1,0 +1,64 @@
+api:
+  dashboard: false
+  debug: true
+entryPoints:
+  http:
+    address: ":80"
+    http:
+      middlewares:
+        - my-cloudflarewarp@file
+        - crowdsec-bouncer@file
+      redirections:
+        entryPoint:
+          to: http
+          scheme: https'
+  https:
+    address: ":443"
+    http:
+      middlewares:
+        - my-cloudflarewarp@file
+        - crowdsec-bouncer@file
+serversTransport:
+  insecureSkipVerify: true
+providers:
+  docker:
+    network: "proxy"
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+   # constraints: "Label(`traefik.constraint-label`, `proxy`)"
+  file:
+    #directory: /home/USERNAME/docker-compose/traefik/data/
+    #watch: true
+    filename: config.yml
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: YOUREMAIL@DOMAIN
+      storage: acme.json
+      caServer: https://acme-v02.api.letsencrypt.org/directory # prod (default)
+      #caServer: https://acme-staging-v02.api.letsencrypt.org/directory # staging
+      dnsChallenge:
+        provider: cloudflare
+#        disablePropagationCheck: true # uncomment this if you have issues pulling certificates through cloudflare, By setting this flag to true disables the need to wait for the propagation of the TXT record to all authoritative name servers.
+#        delayBeforeCheck: 60s # uncomment along with disablePropagationCheck if needed to ensure the TXT record is ready before verification is attempted
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+log:
+  filePath: "/var/log/traefik.log"
+  format: json
+  level: "INFO"
+accessLog:
+  filepath: "/var/log/access.log"
+  format: json
+  bufferingSize: 100
+
+experimental:
+  plugins:
+    crowdsec-bouncer:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.2.1"
+
+    cloudflarewarp:
+      modulename: github.com/BetterCorp/cloudflarewarp
+      version: v1.3.0

@@ -1,0 +1,4 @@
+services:
+    auth:
+        volumes:
+            - ./custom.css:/web/dist/custom.css
