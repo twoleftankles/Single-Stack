@@ -1,0 +1,140 @@
+version: "3"
+services:
+  #UI dashboard
+  dashboard:
+    image: netbirdio/dashboard:$NETBIRD_DASHBOARD_TAG
+    restart: unless-stopped
+    #ports:
+    #  - 80:80
+    #  - 443:443
+    environment:
+      # Endpoints
+      - NETBIRD_MGMT_API_ENDPOINT=$NETBIRD_MGMT_API_ENDPOINT
+      - NETBIRD_MGMT_GRPC_API_ENDPOINT=$NETBIRD_MGMT_API_ENDPOINT
+      # OIDC
+      - AUTH_AUDIENCE=$NETBIRD_DASH_AUTH_AUDIENCE
+      - AUTH_CLIENT_ID=$NETBIRD_AUTH_CLIENT_ID
+      - AUTH_CLIENT_SECRET=$NETBIRD_AUTH_CLIENT_SECRET
+      - AUTH_AUTHORITY=$NETBIRD_AUTH_AUTHORITY
+      - USE_AUTH0=$NETBIRD_USE_AUTH0
+      - AUTH_SUPPORTED_SCOPES=$NETBIRD_AUTH_SUPPORTED_SCOPES
+      - AUTH_REDIRECT_URI=$NETBIRD_AUTH_REDIRECT_URI
+      - AUTH_SILENT_REDIRECT_URI=$NETBIRD_AUTH_SILENT_REDIRECT_URI
+      - NETBIRD_TOKEN_SOURCE=$NETBIRD_TOKEN_SOURCE
+      - NETBIRD_MGMT_IDP_SIGNKEY_REFRESH=true
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.netbird-dashboard.rule=Host(`$NETBIRD_DOMAIN`)
+      - traefik.http.routers.netbird-dashboard.entrypoints=https,http
+      - traefik.http.routers.netbird-dashboard.tls=true
+      - traefik.http.routers.netbird-dashboard.tls.certresolver=cloudflare
+      - traefik.http.routers.netbird-dashboard.service=netbird-dashboard@docker
+#      - traefik.http.routers.netbird-dashboard.middlewares=my-cloudflarewarp@file
+#      - traefik.http.routers.netbird-dashboard.middlewares=crowdsec-bouncer@file
+      - traefik.http.services.netbird-dashboard.loadbalancer.server.port=80
+      - traefik.docker.network=proxy
+    networks:
+      - proxy
+
+
+  # Signal
+  signal:
+    image: netbirdio/signal:$NETBIRD_SIGNAL_TAG
+    restart: unless-stopped
+    volumes:
+      - $SIGNAL_VOLUMENAME:/var/lib/netbird
+    labels:
+      - traefik.enable=true
+#      - traefik.http.routers.netbird-signal.entrypoints=https,http
+      - traefik.http.routers.netbird-signal.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/signalexchange.SignalExchange/`)
+      - traefik.http.routers.netbird-signal.service=netbird-signal
+      - traefik.http.services.netbird-signal.loadbalancer.server.port=80
+      - traefik.http.services.netbird-signal.loadbalancer.server.scheme=h2c
+      - traefik.docker.network=proxy
+    networks:
+      - proxy
+
+  # Relay
+  relay:
+    image: netbirdio/relay:$NETBIRD_RELAY_TAG
+    restart: unless-stopped
+    environment:
+      - NB_LOG_LEVEL=info
+      - NB_LISTEN_ADDRESS=:$NETBIRD_RELAY_PORT
+      - NB_EXPOSED_ADDRESS=$NETBIRD_RELAY_DOMAIN:443
+    # todo: change to a secure secret
+      - NB_AUTH_SECRET=$NETBIRD_RELAY_AUTH_SECRET
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.relay-https.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/relay`)
+      - traefik.http.routers.relay-https.entrypoints=https,http
+      - traefik.http.routers.relay-https.tls=true
+      - traefik.http.routers.relay-https.tls.certresolver=cloudflare
+      - traefik.http.routers.relay-https.service=netbird-relay@docker
+#      - traefik.http.routers.relay-https.middlewares=crowdsec-bouncer@file
+      - traefik.http.services.relay.loadbalancer.server.port=33080
+      - traefik.http.services.relay.loadbalancer.server.scheme=h2c
+      - traefik.docker.network=proxy
+    networks:
+      - proxy
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "500m"
+        max-file: "2"
+
+  # Management
+  management:
+    image: netbirdio/management:$NETBIRD_MANAGEMENT_TAG
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+    volumes:
+      - $MGMT_VOLUMENAME:/var/lib/netbird
+      - ./management.json:/etc/netbird/management.json
+    command: [
+      "--port", "443",
+      "--log-file", "console",
+      "--disable-anonymous-metrics=$NETBIRD_DISABLE_ANONYMOUS_METRICS",
+      "--single-account-mode-domain=$NETBIRD_MGMT_SINGLE_ACCOUNT_MODE_DOMAIN",
+      "--dns-domain=$NETBIRD_MGMT_DNS_DOMAIN"
+      ]
+    labels:
+    - traefik.enable=true
+    - traefik.http.routers.netbird-api.entrypoints=https,http
+    - traefik.http.routers.netbird-api.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/api`)
+    - traefik.http.routers.netbird-api.tls=true
+    - traefik.http.routers.netbird-api.tls.certresolver=cloudflare
+    - traefik.http.routers.netbird-api.service=netbird-api
+    - traefik.http.services.netbird-api.loadbalancer.server.port=443
+
+    - traefik.http.routers.netbird-management.entrypoints=https,http
+    - traefik.http.routers.netbird-management.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/management.ManagementService/`)
+    - traefik.http.routers.netbird-management.tls=true
+    - traefik.http.routers.netbird-management.tls.certresolver=cloudflare
+    - traefik.http.routers.netbird-management.service=netbird-management
+    - traefik.http.services.netbird-management.loadbalancer.server.port=443
+    - traefik.http.services.netbird-management.loadbalancer.server.scheme=h2c
+    environment:
+      - NETBIRD_STORE_ENGINE_POSTGRES_DSN=
+      - NETBIRD_STORE_ENGINE_MYSQL_DSN=
+    networks:
+    - proxy
+      
+  # Coturn
+  coturn:
+    image: coturn/coturn:$COTURN_TAG
+    restart: unless-stopped
+    domainname: $TURN_DOMAIN
+    volumes:
+      - ./turnserver.conf:/etc/turnserver.conf:ro
+    #      - ./privkey.pem:/etc/coturn/private/privkey.pem:ro
+    #      - ./cert.pem:/etc/coturn/certs/cert.pem:ro
+    network_mode: host
+    command:
+      - -c /etc/turnserver.conf
+
+volumes:
+  $MGMT_VOLUMENAME:
+  $SIGNAL_VOLUMENAME:
+
