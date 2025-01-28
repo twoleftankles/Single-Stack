@@ -6,4 +6,6 @@ Traefik config includes cloudflare plugin for real IP and crowdsec bouncer so yo
 
 DO NOT TRY TO PROXY VPN DOMAIN THROUGH CLOUDFLARE. I learned the hard way that gRPC connections dont play well with cloudflare. I'm a noob.
 
+Before proceeding with Netbird, make sure to have provider/application with proper config created in authentik.
+
 Netbird folder contains modified docker-compose.yml, management.json, setup.env(Original template included), and configure.sh file to only expose netbird on port 443 for TCP traffic (Including relay service). All other UDP traffic will steed to be available externally.
