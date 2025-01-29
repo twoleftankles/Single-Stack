@@ -29,8 +29,8 @@ services:
       - traefik.http.routers.netbird-dashboard.tls=true
       - traefik.http.routers.netbird-dashboard.tls.certresolver=cloudflare
       - traefik.http.routers.netbird-dashboard.service=netbird-dashboard@docker
-#      - traefik.http.routers.netbird-dashboard.middlewares=my-cloudflarewarp@file
-#      - traefik.http.routers.netbird-dashboard.middlewares=crowdsec-bouncer@file
+      - traefik.http.routers.netbird-dashboard.middlewares=my-cloudflarewarp@file
+      - traefik.http.routers.netbird-dashboard.middlewares=crowdsec-bouncer@file
       - traefik.http.services.netbird-dashboard.loadbalancer.server.port=80
       - traefik.docker.network=proxy
     networks:
@@ -45,9 +45,10 @@ services:
       - $SIGNAL_VOLUMENAME:/var/lib/netbird
     labels:
       - traefik.enable=true
-#      - traefik.http.routers.netbird-signal.entrypoints=https,http
+      - traefik.http.routers.netbird-signal.entrypoints=https,http
       - traefik.http.routers.netbird-signal.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/signalexchange.SignalExchange/`)
       - traefik.http.routers.netbird-signal.service=netbird-signal
+      - traefik.http.routers.netbird-signal.middlewares=my-cloudflarewarp@file
       - traefik.http.services.netbird-signal.loadbalancer.server.port=80
       - traefik.http.services.netbird-signal.loadbalancer.server.scheme=h2c
       - traefik.docker.network=proxy
@@ -71,7 +72,8 @@ services:
       - traefik.http.routers.relay-https.tls=true
       - traefik.http.routers.relay-https.tls.certresolver=cloudflare
       - traefik.http.routers.relay-https.service=netbird-relay@docker
-#      - traefik.http.routers.relay-https.middlewares=crowdsec-bouncer@file
+      - traefik.http.routers.relay-https.middlewares=my-cloudflarewarp@file
+      - traefik.http.routers.relay-https.middlewares=crowdsec-bouncer@file
       - traefik.http.services.relay.loadbalancer.server.port=33080
       - traefik.http.services.relay.loadbalancer.server.scheme=h2c
       - traefik.docker.network=proxy
@@ -106,6 +108,8 @@ services:
     - traefik.http.routers.netbird-api.tls=true
     - traefik.http.routers.netbird-api.tls.certresolver=cloudflare
     - traefik.http.routers.netbird-api.service=netbird-api
+    - traefik.http.routers.netbird-api.middlewares=my-cloudflarewarp@file
+    - traefik.http.routers.netbird-api.middlewares=crowdsec-bouncer@file
     - traefik.http.services.netbird-api.loadbalancer.server.port=443
 
     - traefik.http.routers.netbird-management.entrypoints=https,http
@@ -113,6 +117,8 @@ services:
     - traefik.http.routers.netbird-management.tls=true
     - traefik.http.routers.netbird-management.tls.certresolver=cloudflare
     - traefik.http.routers.netbird-management.service=netbird-management
+    - traefik.http.routers.netbird-management.middlewares=my-cloudflarewarp@file
+    - traefik.http.routers.netbird-management.middlewares=crowdsec-bouncer@file
     - traefik.http.services.netbird-management.loadbalancer.server.port=443
     - traefik.http.services.netbird-management.loadbalancer.server.scheme=h2c
     environment:
