@@ -28,10 +28,10 @@ services:
       - traefik.http.routers.netbird-dashboard.entrypoints=https,http
       - traefik.http.routers.netbird-dashboard.tls=true
       - traefik.http.routers.netbird-dashboard.tls.certresolver=cloudflare
-      - traefik.http.routers.netbird-dashboard.service=netbird-dashboard@docker
+      - traefik.http.routers.netbird-dashboard.service=dashboard@docker
       - traefik.http.routers.netbird-dashboard.middlewares=my-cloudflarewarp@file
       - traefik.http.routers.netbird-dashboard.middlewares=crowdsec-bouncer@file
-      - traefik.http.services.netbird-dashboard.loadbalancer.server.port=80
+      - traefik.http.services.dashboard.loadbalancer.server.port=80
       - traefik.docker.network=proxy
     networks:
       - proxy
@@ -47,10 +47,11 @@ services:
       - traefik.enable=true
       - traefik.http.routers.netbird-signal.entrypoints=https,http
       - traefik.http.routers.netbird-signal.rule=Host(`$NETBIRD_DOMAIN`) && PathPrefix(`/signalexchange.SignalExchange/`)
-      - traefik.http.routers.netbird-signal.service=netbird-signal
+      - traefik.http.routers.netbird-signal.service=signal@docker
       - traefik.http.routers.netbird-signal.middlewares=my-cloudflarewarp@file
-      - traefik.http.services.netbird-signal.loadbalancer.server.port=80
-      - traefik.http.services.netbird-signal.loadbalancer.server.scheme=h2c
+      - traefik.http.routers.netbird-signal.middlewares=crowdsec-bouncer@file
+      - traefik.http.services.signal.loadbalancer.server.port=80
+      - traefik.http.services.signal.loadbalancer.server.scheme=h2c
       - traefik.docker.network=proxy
     networks:
       - proxy
@@ -71,7 +72,7 @@ services:
       - traefik.http.routers.relay-https.entrypoints=https,http
       - traefik.http.routers.relay-https.tls=true
       - traefik.http.routers.relay-https.tls.certresolver=cloudflare
-      - traefik.http.routers.relay-https.service=netbird-relay@docker
+      - traefik.http.routers.relay-https.service=relay@docker
       - traefik.http.routers.relay-https.middlewares=my-cloudflarewarp@file
       - traefik.http.routers.relay-https.middlewares=crowdsec-bouncer@file
       - traefik.http.services.relay.loadbalancer.server.port=33080
