@@ -2,7 +2,7 @@
 Traefik | Authentik | Crowdsec | Netbird
 
 The Traefik/Authentik/Crowdsec should be configured first.
-Traefik config includes cloudflare plugin for real IP and crowdsec bouncer so you can proxy DNS through cloudflare with with correct client IP in logs.
+Traefik config includes cloudflare plugin for real IP and crowdsec bouncer so you can proxy DNS through cloudflare with correct client IP in logs.
 
 DO NOT PROXY DNS THROUGH CLOUDFLARE FOR NETBIRD DOMAIN. It sems to break the signal service. Everything else should be fine.
 
