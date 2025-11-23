@@ -10,8 +10,8 @@ entryPoints:
         - crowdsec-bouncer@file
       redirections:
         entryPoint:
-          to: http
-          scheme: https'
+          to: https
+          scheme: https
   https:
     address: ":443"
     http:
